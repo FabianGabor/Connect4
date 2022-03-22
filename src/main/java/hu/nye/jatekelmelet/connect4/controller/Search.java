@@ -8,7 +8,8 @@ import java.util.Scanner;
 
 public class Search {
 
-    private static final int MAX_DEPTH = 2;
+    private static final int MAX_DEPTH = 3;
+    private static final boolean RECURSIVE = true;
 
     public static int humanMove(Board board, Player p) {
 
@@ -74,7 +75,6 @@ public class Search {
         return playerHeuristic - opponentHeuristic;
     }
 
-
     public static int nextBestMove(Board board, Player player, Player opponent) {
 
         int[] moves = board.getAvailableColumns();
@@ -95,13 +95,10 @@ public class Search {
         return highestCol;
     }
 
-
-    // TODO depth
     public static int minimax(Board board, Player player, Player opponent) {
 
         int[] firstMoves = board.getAvailableColumns();
         int[] heuristics = new int[firstMoves.length];
-
 
         for (int col : firstMoves) {
             if (isWinningMove(board, player, opponent, col)) {
@@ -109,16 +106,8 @@ public class Search {
             }
         }
 
-        final boolean RECURSIVE = true;
-
         if (RECURSIVE) {
-            for (int i = 0; i < firstMoves.length; i++) {
-                int firstCol = firstMoves[i];
-                board.addSymbol(firstCol, player.getSymbol());
-                int[] secondMoves = board.getAvailableColumns();
-                heuristics[i] = calculateHeuristics(board, player, opponent, secondMoves, heuristics[i], 1, i);
-                board.removeSymbol(firstCol);
-            }
+            heuristics = getHeuristics(board, player, opponent, MAX_DEPTH, board.getAvailableColumns());
         } else {
             for (int i = 0; i < firstMoves.length; i++) {
                 int firstCol = firstMoves[i];
@@ -157,28 +146,25 @@ public class Search {
     }
 
 
-    public static int calculateHeuristics(Board board, Player player, Player opponent, int[] moves, int heuristicValue,
-                                           int depth, int index) {
-
+    static int[] getHeuristics(Board board, Player player, Player opponent, int depth, int[] moves) {
+        int[] heuristics = new int[moves.length];
         for (int i = 0; i < moves.length; i++) {
-            int col = moves[index];
-
-            if (depth % 2 == 0) {
-                board.addSymbol(col, player.getSymbol());
+            if (depth % 2 != 0) {
+                board.addSymbol(moves[i], player.getSymbol());
             } else {
-                board.addSymbol(col, opponent.getSymbol());
+                board.addSymbol(moves[i], opponent.getSymbol());
             }
-
-            if (depth < MAX_DEPTH) {
-                int[] nextMoves = board.getAvailableColumns();
-                calculateHeuristics(board, player, opponent, nextMoves, heuristicValue, depth + 1, index);
+            if (depth == 0) {
+                heuristics[i] = getSimpleHeuristic(board, player, opponent);
             } else {
-                heuristicValue += getSimpleHeuristic(board, player, opponent);
+                int[] heuristicsTmp = getHeuristics(board, player, opponent, depth - 1, board.getAvailableColumns());
+                for (int heuristicValue : heuristicsTmp) {
+                    heuristics[i] += heuristicValue;
+                }
             }
-
-            board.removeSymbol(col);
+            board.removeSymbol(moves[i]);
         }
-        return heuristicValue;
+        return heuristics;
     }
 
 }
