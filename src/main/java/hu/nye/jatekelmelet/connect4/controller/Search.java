@@ -109,25 +109,37 @@ public class Search {
             }
         }
 
-        for (int i = 0; i < firstMoves.length; i++) {
-            int firstCol = firstMoves[i];
-            board.addSymbol(firstCol, player.getSymbol());
-            int[] secondMoves = board.getAvailableColumns();
+        final boolean RECURSIVE = true;
 
-            for (int j = 0; j < secondMoves.length; j++) {
-                int secondCol = secondMoves[j];
-                board.addSymbol(secondCol, opponent.getSymbol());
-                int[] thirdMoves = board.getAvailableColumns();
-
-                for (int k = 0; k < thirdMoves.length; k++) {
-                    int thirdCol = thirdMoves[k];
-                    board.addSymbol(thirdCol, player.getSymbol());
-                    heuristics[i] += getSimpleHeuristic(board, player, opponent);
-                    board.removeSymbol(thirdCol);
-                }
-                board.removeSymbol(secondCol);
+        if (RECURSIVE) {
+            for (int i = 0; i < firstMoves.length; i++) {
+                int firstCol = firstMoves[i];
+                board.addSymbol(firstCol, player.getSymbol());
+                int[] secondMoves = board.getAvailableColumns();
+                heuristics[i] = calculateHeuristics(board, player, opponent, secondMoves, heuristics[i], 1, i);
+                board.removeSymbol(firstCol);
             }
-            board.removeSymbol(firstCol);
+        } else {
+            for (int i = 0; i < firstMoves.length; i++) {
+                int firstCol = firstMoves[i];
+                board.addSymbol(firstCol, player.getSymbol());
+                int[] secondMoves = board.getAvailableColumns();
+
+                for (int j = 0; j < secondMoves.length; j++) {
+                    int secondCol = secondMoves[j];
+                    board.addSymbol(secondCol, opponent.getSymbol());
+                    int[] thirdMoves = board.getAvailableColumns();
+
+                    for (int k = 0; k < thirdMoves.length; k++) {
+                        int thirdCol = thirdMoves[k];
+                        board.addSymbol(thirdCol, player.getSymbol());
+                        heuristics[i] += getSimpleHeuristic(board, player, opponent);
+                        board.removeSymbol(thirdCol);
+                    }
+                    board.removeSymbol(secondCol);
+                }
+                board.removeSymbol(firstCol);
+            }
         }
 
         System.out.println("Heuristics: " + Arrays.toString(heuristics));
@@ -143,4 +155,30 @@ public class Search {
 
         return firstMoves[maxIndex];
     }
+
+
+    public static int calculateHeuristics(Board board, Player player, Player opponent, int[] moves, int heuristicValue,
+                                           int depth, int index) {
+
+        for (int i = 0; i < moves.length; i++) {
+            int col = moves[index];
+
+            if (depth % 2 == 0) {
+                board.addSymbol(col, player.getSymbol());
+            } else {
+                board.addSymbol(col, opponent.getSymbol());
+            }
+
+            if (depth < MAX_DEPTH) {
+                int[] nextMoves = board.getAvailableColumns();
+                calculateHeuristics(board, player, opponent, nextMoves, heuristicValue, depth + 1, index);
+            } else {
+                heuristicValue += getSimpleHeuristic(board, player, opponent);
+            }
+
+            board.removeSymbol(col);
+        }
+        return heuristicValue;
+    }
+
 }
